@@ -28,26 +28,10 @@ export function registerCommands(plugin: KeepSidianPlugin) {
 	});
 
 	plugin.addCommand({
-		id: "two-way-sync-google-keep",
-		name: "Perform two-way sync",
-		callback: async () => {
-			plugin.openSyncCenter({ mode: "two-way", autoStart: true });
-		},
-	});
-
-	plugin.addCommand({
 		id: "import-google-keep-notes",
 		name: "Download notes from Google Keep",
 		callback: async () => {
 			plugin.openSyncCenter({ mode: "import", autoStart: true });
-		},
-	});
-
-	plugin.addCommand({
-		id: "push-google-keep-notes",
-		name: "Upload notes to Google Keep",
-		callback: async () => {
-			plugin.openSyncCenter({ mode: "push", autoStart: true });
 		},
 	});
 

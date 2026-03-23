@@ -194,10 +194,9 @@ const mockSubscriptionService = () => {
         (runOauthBrowserAutomation as jest.Mock).mockResolvedValue(automationResult);
     });
 
-    test('two-way sync defaults stay disabled for safety', () => {
-        expect(DEFAULT_SETTINGS.twoWaySyncBackupAcknowledged).toBe(false);
-        expect(DEFAULT_SETTINGS.twoWaySyncEnabled).toBe(false);
-        expect(DEFAULT_SETTINGS.twoWaySyncAutoSyncEnabled).toBe(false);
+    test('one-way fork keeps background sync available without two-way defaults', () => {
+        expect(DEFAULT_SETTINGS.autoSyncEnabled).toBe(false);
+        expect(DEFAULT_SETTINGS.autoSyncIntervalHours).toBe(24);
     });
 
     test('should instantiate correctly', () => {

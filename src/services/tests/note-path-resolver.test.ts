@@ -54,7 +54,7 @@ describe("note-path-resolver", () => {
 			);
 
 			expect(result).toBe(
-				"KeepSidian/2026/03/13/2024/20/2026-03-13-11-20-25-13-2024-03-20-20-Planning_ Q1_2024.md"
+				"KeepSidian/2026/03/13/2024/20/2026-03-13-15-20-25-13-2024-03-20-20-Planning_ Q1_2024.md"
 			);
 		} finally {
 			jest.useRealTimers();

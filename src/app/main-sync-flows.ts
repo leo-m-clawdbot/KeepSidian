@@ -106,27 +106,6 @@ export async function buildManualSyncPlan(
 	const allowPerNoteSelection = isSupporterActive;
 	const selectionLockedReason = allowPerNoteSelection ? undefined : SUPPORTER_LOCK_REASON;
 
-	if (mode === "push" || mode === "two-way") {
-		const gate = await plugin.requireTwoWaySafeguards();
-		if (!gate.allowed) {
-			plugin.showTwoWaySafeguardNotice(gate);
-			return null;
-		}
-	}
-
-	if (mode === "push") {
-		const builtPushPlan = await buildPushSyncPlan(
-			plugin,
-			allowPerNoteSelection,
-			selectionLockedReason
-		);
-		return {
-			plan: builtPushPlan.plan,
-			mode,
-			stage: "upload",
-			pushNotes: builtPushPlan.notesToPush,
-		};
-	}
 
 	const builtImportPlan = await buildImportSyncPlan(
 		plugin,

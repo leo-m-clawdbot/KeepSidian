@@ -1,190 +1,84 @@
-# KeepSidian: 2-way Obsidian-Google Keep sync
+# KeepSidian (Leo fork): one-way Google Keep → Obsidian mirror
 
 [![License](https://img.shields.io/github/license/lc0rp/KeepSidian?style=flat-square)](LICENSE)
-[![Issues](https://img.shields.io/github/issues/lc0rp/KeepSidian?style=flat-square)](https://github.com/lc0rp/KeepSidian/issues)
-[![Release](https://img.shields.io/github/v/release/lc0rp/KeepSidian?style=flat-square)](https://github.com/lc0rp/KeepSidian/releases)
-[![Downloads](https://img.shields.io/github/downloads/lc0rp/KeepSidian/total?style=flat-square)](https://github.com/lc0rp/KeepSidian/releases)
 
-> ⚠️ **Note**: Not affiliated with the Android app Capsidian (Formerly "Keepsidian"). For Android app questions, please
-> see [👉 this thread](https://forum.obsidian.md/t/app-keepsidian/101491/15).
+This fork is adapted for a **one-way, read-only mirror** workflow:
 
-As a regular user of both Google Keep and Obsidian, I set out to make it easier to exchange data between both apps.
+- **Google Keep is the source of truth**
+- **Obsidian is the local mirror**
+- sync only goes **from Google Keep into your vault**
+- upload / two-way sync behavior is intentionally removed from this fork
 
-KeepSidian syncs notes between Google Keep and Obsidian, on demand or automatically on a schedule. The current plugin
-experience centers manual sync around the Sync Center, where you can review a download, upload, or two-way plan before
-anything changes in your vault or in Google Keep.
+## What this fork is for
 
-- Versions 1.1.2+: Introducing two-way sync!
-- Versions 1.1.1 and below: Only downloading supported
+This version is meant for setups where you:
+- keep writing and organizing notes in **Google Keep**
+- want those notes mirrored into local Markdown for **reading, search, backup, and agent access**
+- do **not** want local Obsidian edits to sync back to Google Keep
 
-Please share your feedback in the [issues section](https://github.com/lc0rp/KeepSidian/issues) on GitHub.
+## Read-only mirror semantics
 
-## KIM based sync server
+This fork treats imported Keep notes as a mirror.
 
-The connection to Google Keep is established through a flask server based on
-[Keep-It-Markdown](https://github.com/djsudduth/keep-it-markdown), which handles the heavy lifting. This is particularly
-useful for users who cannot run Python scripts on their computers.
+That means:
+- if a mirrored note already exists locally and the Keep version changes, the local mirror is **overwritten from Google Keep**
+- local mirror edits are **not merged back**
+- upload and two-way sync flows are not part of this fork
+- attachments are still downloaded into the mirror
 
-When you start a sync, you will provide your Google Keep email and a token generated during installation. These
-credentials are stored on your computer, sent when you sync, and then discarded. KeepSidian stores sync tokens in
-Obsidian secret storage when available, and does not log or store your credentials or notes on the server.
+Practical rule:
+> **Edit in Google Keep, read in Obsidian.**
 
-## Manual sync and the Sync Center
+## Sync behavior
 
-KeepSidian now centers manual sync around one primary action: **Sync now**.
+### Manual sync
+You can:
+- **Sync now**
+- **Open sync center**
+- **Download notes from Google Keep**
+- **Open sync log file**
 
-- `Sync now` opens the Sync Center and immediately starts building a reviewable download plan.
-- `Open sync center` opens the same surface without starting a sync, so you can choose the mode first.
-- The ribbon icon and status-bar item also open the Sync Center.
-- The Sync Center can build plans for **Download**, **Upload**, or **Two-way sync**.
-- Download plans support three start-date scopes:
-  - `Last successful sync`
-  - `All dates`
-  - `Custom`
-- Two-way sync uses two staged reviews: first the download plan, then the upload plan created from the updated local
-  state.
-- Legacy commands for **Perform two-way sync**, **Download notes from Google Keep**, and **Upload notes to Google Keep**
-  still exist, but they now route into the same Sync Center flow.
+### Auto sync
+Auto sync runs **import-only** on the configured interval.
 
-Every manual sync is review-first. The setup view builds a plan, then the larger review modal shows grouped counts and
-the exact notes/actions before execution. While a sync is running, the status bar, notices, and review modal stay in
-sync so you can track progress from either place.
+## Server dependency
 
-## Activity log (v1.1.0+)
-
-Each sync activitiy is recorded in a time stamped activity log file under `_KeepSidianLogs/` in the target directory as
-Markdown list items. This file is rotated daily.
-
-## Background sync (v1.0.7+)
-
-You can enable background syncing on a 24 hour schedule by default. Project supporters can customize the interval in
-hours. Project supporters can also choose to run a two-way sync whenever background syncing.
-
-When background-sync is enabled, a status bar indicator is shown in the bottom right.
-
-## Supporting the project
-
-KeepSidian is useful for all users. However, some advanced features that may incur additional processing, third party
-costs or developer time shall be released to users who choose to support KeepSidian development. Anyone can choose to
-support the project here:
-[🌎 Support KeepSidian](https://keepsidianserver-v2-162887264002.us-central1.run.app/subscribe).
-
-### Exclusive supporter features
-
-v1.0.14:
-
-- Advanced filters
-- Auto-tagging
-- Contextual title generation
-
-v1.1.0:
-
-- Granular background sync interval below the default 24 hours.
-
-v1.1.2:
-
-- Two-way background sync
-
-Active supporters can manage billing or unsubscribe from inside Obsidian. Open
-`Settings > KeepSidian > Exclusive features for project supporters`, then use the Stripe customer-portal link shown in
-the active subscription section.
-
-## Future roadmap
-
-Some upcoming features that I plan to work on include:
-
-- Daily sync (Shipped in v1.1.0)
-- Realtime sync
-- Archiving
-- Downloading Archived Notes
-- Unlimited notes (Shipped in v1.0.14)
-- 2-way sync (Shipped in v1.1.2)
-- Advanced filters (Shipped in v1.0.14 to supporters)
-- Auto-tagging (Shipped in v1.0.14 to supporters)
-- Contextual title generation (Shipped in v1.0.14 to supporters)
-
-> **What would you like to see next?**
->
-> Please rank the upcoming features here or add your own!
->
-> 1. [KeepSidian wishlist](https://umh39lhux3j.typeform.com/to/NKbRukRg) - Google keep features.
-> 2. [Google Calendar features](https://umh39lhux3j.typeform.com/to/WuDedfWN) (coming soon): I'd love to hear what you
->    want for this feature.
+This fork still uses the upstream KeepSidian server-based import flow for talking to Google Keep.
+It is therefore not yet a fully standalone local-only sync tool.
 
 ## Installation
 
-KeepSidian can be installed from the [community plugin store](https://obsidian.md/plugins?id=keepsidian), as well as a
-few other options outlined below.
+Clone this repository into your Obsidian plugins directory, then build/install as normal for an Obsidian community plugin-style repo.
 
-### Get the plugin
+## Configure
 
-- **Option 1 (Preferred)**: Via the [Obsidian community plugin store](https://obsidian.md/plugins?id=keepsidian)
-- **Option 2**: Use the [Obsidian BRAT plugin](https://github.com/TfTHacker/obsidian42-brat)
-- **Option 3**: Clone this repository in your {obsidian vault path}/.obsidian/plugins
-
-After installation, go to "Settings > Community Plugins > KeepSidian" in Obsidian to configure the plugin.
-
-### Configure
-
-In the plugin settings, you will need to provide:
-
-- Enter your Google Keep email.
-- Choose a save location in your vault. New installs default to `/KeepSidian`.
-- Optionally customize the save-location pattern with `{now.*}` and `{note.*}` variables such as year, month, day, or
-  date.
-- Optionally customize the imported note filename pattern. The default is `{title}`.
-- Enable/disable automatic syncing.
-
-### Retrieve a Google Keep token
-
-- Desktop: use one of the built-in browser automation wizards, or follow the manual KIM instructions and paste the
-  token yourself.
-- Mobile: the retrieval wizard is hidden. Paste a token captured on desktop, or paste a short-lived `oauth2_4...`
-  token and let KeepSidian exchange it through the server.
-
-**PRIVACY NOTE**: THIS TOKEN IS ONLY STORED ON YOUR COMPUTER. When supported by your Obsidian version, KeepSidian stores
-the token in Obsidian secret storage.
-
-## Mobile compatibility (v2.0.3+)
-
-Starting with v2.0.3, KeepSidian can be used on mobile. A community member takes Google Keep notes on the go from their
-smartwatch, then uses KeepSidian on their phone to sync those notes into Obsidian.
-
-KeepSidian on mobile still requires a sync token, but it does not include the token retrieval wizard. The easiest path
-is to retrieve the token on desktop, copy it, paste it into a temporary Google Keep note, then open that note on your
-phone and copy/paste the token into KeepSidian settings. Any other reliable copy/paste method between desktop and phone
-works too.
+In plugin settings, provide:
+- your Google Keep email
+- your Google Keep token
+- a save location in your vault
+- optional auto-sync settings
 
 ## Frontmatter
 
-The plugin adds the following frontmatter to each synced note:
+Synced notes include metadata such as:
+- `GoogleKeepUrl`
+- `GoogleKeepCreatedDate`
+- `GoogleKeepUpdatedDate`
+- `KeepSidianLastSyncedDate`
 
-- GoogleKeepUrl
-- GoogleKeepCreatedDate
-- GoogleKeepUpdatedDate
-- KeepSidianLastSyncedDate
+## Activity log
 
-## Conflict resolution
+Each sync activity is recorded under `_KeepSidianLogs/` inside the target folder.
 
-When a local note and its Google Keep counterpart have both been modified since the last sync, KeepSidian now attempts
-to merge the differing bodies of the notes. The frontmatter of the existing note is preserved and excluded from the
-merge comparison. If the merge succeeds, the note is updated in place; otherwise, the incoming version is saved as a
-separate `-conflict-<timestamp>.md` file.
+## Current caveats
 
-## Attachments
+- this fork is **download-only**
+- it still depends on the upstream server integration for fetching Keep notes
+- local edits inside the mirror folder may be overwritten on the next sync
 
-- Downloaded attachments are stored under the sync folder's `media/` directory.
-- Upload scans Markdown notes under the save location and includes referenced attachments that resolve into `media/`.
-- Missing attachments are skipped and recorded in the sync log.
-- Media uploads are still considered experimental and server support may vary by attachment type.
+## Summary
 
-## Other plugins
-
-- [Obsidian Task Roles](https://github.com/lc0rp/obsidian-task-roles/) - Assignee & Role Tracking for your Obsidian
-  Tasks.
-- [Checkbox Bulk Dates](https://github.com/lc0rp/obsidian-checkbox-bulk-dates) - Add creation dates to unchecked
-  checkboxes.
-
-## Feedback
-
-Please share your feedback in the [issues section](https://github.com/lc0rp/KeepSidian/issues) on GitHub.
+This fork is optimized for:
+- **Google Keep as capture/inbox/source**
+- **Obsidian as local mirror and reading surface**
+- **safe one-way sync for agent-readable notes**

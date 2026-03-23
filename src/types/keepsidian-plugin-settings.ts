@@ -43,9 +43,6 @@ export interface KeepSidianPluginSettings {
 	lastSyncLogPath?: string | null;
 	keepSidianLastSuccessfulSyncDate?: string | null;
 	frontmatterPascalCaseFixApplied?: boolean;
-	twoWaySyncBackupAcknowledged: boolean;
-	twoWaySyncEnabled: boolean;
-	twoWaySyncAutoSyncEnabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: KeepSidianPluginSettings = {
@@ -71,9 +68,6 @@ export const DEFAULT_SETTINGS: KeepSidianPluginSettings = {
 	lastSyncLogPath: null,
 	keepSidianLastSuccessfulSyncDate: null,
 	frontmatterPascalCaseFixApplied: false,
-	twoWaySyncBackupAcknowledged: false,
-	twoWaySyncEnabled: false,
-	twoWaySyncAutoSyncEnabled: false,
 };
 
 export function normalizeRootedVaultPath(value: string): string {

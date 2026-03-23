@@ -302,7 +302,7 @@ describe("Google Keep Import Functions", () => {
 
 			expect(builtPlan.plan.entries[0]).toEqual(
 				expect.objectContaining({
-					label: "Overwrite",
+					label: "Overwrite from Google Keep",
 					selectionLocked: true,
 					selectionLockedReason: "Available to project supporters",
 				})
@@ -575,7 +575,7 @@ describe("Google Keep Import Functions", () => {
 			);
 		});
 
-		it("should merge note file if duplicate action is merge and merge succeeds", async () => {
+		it("should overwrite local mirror when duplicate action is merge", async () => {
 			const existingContent = `---\nExisting: true\n---\nLine 1`;
 			const incomingNote: noteModule.PreNormalizedNote = {
 				title: "Note 1",
@@ -605,7 +605,7 @@ describe("Google Keep Import Functions", () => {
 			expect(mockPlugin.app.vault.adapter.write).toHaveBeenCalledWith(expectedFilePath, expectedContent);
 		});
 
-		it("should rename note file if merge has conflicts", async () => {
+		it("should not create conflict copies in one-way mirror mode", async () => {
 			const existingContent = `---\nExisting: true\n---\nLine 1\nLine A`;
 			const incomingNote: noteModule.PreNormalizedNote = {
 				title: "Note 1",
@@ -615,6 +615,7 @@ describe("Google Keep Import Functions", () => {
 			const incomingNormalized: noteModule.NormalizedNote = {
 				...normalizedNote,
 				text: "Line 1\nLine B",
+				textWithoutFrontmatter: "Line 1\nLine B",
 				frontmatterDict: { Incoming: "true" },
 			};
 
@@ -629,7 +630,7 @@ describe("Google Keep Import Functions", () => {
 
 			await syncModule.processAndSaveNote(mockPlugin, incomingNote, mockPlugin.settings.saveLocation);
 
-			const expectedFilePath = `${mockPlugin.settings.saveLocation}/${incomingNote.title}-conflict-2023-01-01T00:00:00.000Z.md`;
+			const expectedFilePath = `${mockPlugin.settings.saveLocation}/${incomingNote.title}.md`;
 			expect(mockPlugin.app.vault.adapter.write).toHaveBeenCalledWith(expectedFilePath, expect.any(String));
 		});
 

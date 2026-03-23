@@ -2,11 +2,9 @@ import { Notice } from "obsidian";
 import type KeepSidianPlugin from "@app/main";
 import { normalizeNote, PreNormalizedNote, extractFrontmatter } from "./domain/note";
 import { handleDuplicateNotes } from "./domain/compare";
-import { mergeNoteText } from "./domain/merge";
 // Import via legacy google path so tests can spy on this module
 import { processAttachments } from "../keep/io/attachments";
 import type { NoteImportOptions } from "@ui/modals/NoteImportOptionsModal";
-import { CONFLICT_FILE_SUFFIX } from "./constants";
 import { buildFrontmatterWithSyncDate, wrapMarkdown } from "./frontmatter";
 import { ensurePascalCaseFrontmatter } from "./migrations/fixFrontmatterCasing";
 import {
@@ -269,20 +267,12 @@ function buildImportPlanEntry(
 				selectable = true;
 				break;
 			case "overwrite":
+			case "merge":
 				action = "overwrite";
-				label = "Overwrite";
+				label = "Overwrite from Google Keep";
 				selectable = true;
+				detail = "Local mirror content will be replaced by the latest Google Keep note.";
 				break;
-			case "merge": {
-				const existingContent = await plugin.app.vault.adapter.read(noteFilePath).catch(() => "");
-				const [, existingBody] = extractFrontmatter(existingContent);
-				const { hasConflict } = mergeNoteText(existingBody, normalizedNote.textWithoutFrontmatter);
-				action = hasConflict ? "conflict-copy" : "merge";
-				label = hasConflict ? "Conflict copy" : "Merge";
-				selectable = true;
-				detail = hasConflict ? "Will create a conflict copy next to the existing note." : undefined;
-				break;
-			}
 			case "skip":
 			default:
 				action = "skipped-identical";
@@ -553,49 +543,17 @@ export async function processAndSaveNote(
 			const existingMarkdownFileContentRaw = await plugin.app.vault.adapter.read(noteFilePath);
 			const existingMarkdownFileContent =
 				typeof existingMarkdownFileContentRaw === "string" ? existingMarkdownFileContentRaw : "";
-			const [existingFrontmatter, existingTextWithoutFrontmatter] = extractFrontmatter(existingMarkdownFileContent);
+			const [existingFrontmatter] = extractFrontmatter(existingMarkdownFileContent);
 
 			const mdFrontmatter = buildFrontmatterWithSyncDate(existingFrontmatter, lastSyncedDate, newFrontmatter);
+			const mdContentWithSyncDate = wrapMarkdown(mdFrontmatter, newTextWithoutFrontmatter);
 
-			if (duplicateNotesAction === "merge") {
-				const { mergedText: mergedText, hasConflict } = mergeNoteText(
-					existingTextWithoutFrontmatter,
-					newTextWithoutFrontmatter
-				);
-
-				const mergedMdContent = wrapMarkdown(mdFrontmatter, mergedText);
-
-				if (!hasConflict) {
-					await ensureParentFolderForFile(plugin.app, noteFilePath);
-					await plugin.app.vault.adapter.write(noteFilePath, mergedMdContent);
-					if (existingKeepNoteIndex) {
-						updateExistingKeepNoteIndex(existingKeepNoteIndex, noteFilePath, normalizedNote);
-					}
-					await logSync(plugin, `${noteLink} - merged (no conflict)`, NOTE_LOG_BATCH_OPTIONS);
-				} else {
-					// Write a conflict copy
-					noteFilePath = noteFilePath.replace(/\.md$/, "");
-					noteFilePath = `${noteFilePath}${CONFLICT_FILE_SUFFIX}${lastSyncedDate}.md`;
-
-					await ensureParentFolderForFile(plugin.app, noteFilePath);
-					await plugin.app.vault.adapter.write(noteFilePath, mergedMdContent);
-					if (existingKeepNoteIndex) {
-						updateExistingKeepNoteIndex(existingKeepNoteIndex, noteFilePath, normalizedNote);
-					}
-					const conflictLink = `[${noteTitle}](${normalizePathSafe(noteFilePath)})`;
-					await logSync(plugin, `${conflictLink} - conflict copy created`, NOTE_LOG_BATCH_OPTIONS);
-				}
-			} else {
-				const mdContentWithSyncDate = wrapMarkdown(mdFrontmatter, newTextWithoutFrontmatter);
-
-				// overwrite path: write to current path
-				await ensureParentFolderForFile(plugin.app, noteFilePath);
-				await plugin.app.vault.adapter.write(noteFilePath, mdContentWithSyncDate);
-				if (existingKeepNoteIndex) {
-					updateExistingKeepNoteIndex(existingKeepNoteIndex, noteFilePath, normalizedNote);
-				}
-				await logSync(plugin, `${noteLink} - ${existedBefore ? "overwritten" : "created"}`, NOTE_LOG_BATCH_OPTIONS);
+			await ensureParentFolderForFile(plugin.app, noteFilePath);
+			await plugin.app.vault.adapter.write(noteFilePath, mdContentWithSyncDate);
+			if (existingKeepNoteIndex) {
+				updateExistingKeepNoteIndex(existingKeepNoteIndex, noteFilePath, normalizedNote);
 			}
+			await logSync(plugin, `${noteLink} - ${existedBefore ? "overwritten from Google Keep" : "created"}`, NOTE_LOG_BATCH_OPTIONS);
 		}
 
 		if (normalizedNote.blob_urls && normalizedNote.blob_urls.length > 0) {

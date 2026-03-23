@@ -77,7 +77,7 @@ describe("KeepSidianPlugin", () => {
 			await plugin.onload();
 
 			expect(plugin.settings).toEqual(DEFAULT_SETTINGS);
-			expect(plugin.addCommand).toHaveBeenCalledTimes(6);
+			expect(plugin.addCommand).toHaveBeenCalledTimes(4);
 			expect(
 				(plugin.addCommand as jest.Mock).mock.calls.map(
 					(call) => call[0].id
@@ -85,9 +85,7 @@ describe("KeepSidianPlugin", () => {
 			).toEqual([
 				"sync-now",
 				"open-sync-center",
-				"two-way-sync-google-keep",
 				"import-google-keep-notes",
-				"push-google-keep-notes",
 				"open-sync-log-file",
 			]);
 			expect(plugin.addSettingTab).toHaveBeenCalledWith(
@@ -375,21 +373,12 @@ describe("KeepSidianPlugin", () => {
 			expect(importSpy).toHaveBeenCalledWith(true);
 		});
 
-		it("runs two-way sync when safeguards allow upgrade", async () => {
+		it("runs import-only auto sync on each interval", async () => {
 			plugin.settings = {
 				...DEFAULT_SETTINGS,
 				autoSyncEnabled: true,
 				autoSyncIntervalHours: 1,
-				twoWaySyncBackupAcknowledged: true,
-				twoWaySyncEnabled: true,
-				twoWaySyncAutoSyncEnabled: true,
 			};
-			plugin.subscriptionService.isSubscriptionActive = jest
-				.fn()
-				.mockResolvedValue(true);
-			const performTwoWaySpy = jest
-				.spyOn(plugin, "performTwoWaySync")
-				.mockResolvedValue();
 			const importSpy = jest
 				.spyOn(plugin, "importNotes")
 				.mockResolvedValue();
@@ -399,64 +388,13 @@ describe("KeepSidianPlugin", () => {
 			plugin.startAutoSync();
 			try {
 				await advanceOneInterval();
-				expect(plugin.subscriptionService.isSubscriptionActive).toHaveBeenCalledWith(true);
-				expect(performTwoWaySpy).toHaveBeenCalledTimes(1);
-				expect(importSpy).not.toHaveBeenCalled();
+				expect(importSpy).toHaveBeenCalledTimes(1);
+				expect(importSpy).toHaveBeenCalledWith(true);
 				expect(openSyncCenterSpy).not.toHaveBeenCalled();
 			} finally {
 				plugin.stopAutoSync();
-				performTwoWaySpy.mockRestore();
 				importSpy.mockRestore();
 				openSyncCenterSpy.mockRestore();
-			}
-		});
-
-		it("logs gating reasons and avoids duplicate notices when safeguards fail", async () => {
-			plugin.settings = {
-				...DEFAULT_SETTINGS,
-				autoSyncEnabled: true,
-				autoSyncIntervalHours: 1,
-				twoWaySyncBackupAcknowledged: true,
-				twoWaySyncEnabled: false,
-				twoWaySyncAutoSyncEnabled: false,
-			};
-			plugin.subscriptionService.isSubscriptionActive = jest
-				.fn()
-				.mockResolvedValue(true);
-			const logSyncSpy = jest
-				.spyOn(LoggingModule, "logSync")
-				.mockResolvedValue();
-			const noticeSpy = jest
-				.spyOn(plugin, "showTwoWaySafeguardNotice")
-				.mockImplementation(() => {});
-			const importSpy = jest
-				.spyOn(plugin, "importNotes")
-				.mockResolvedValue();
-			plugin.startAutoSync();
-			try {
-				await advanceOneInterval();
-				const runTick = (
-					plugin as unknown as { runAutoSyncTick: () => Promise<void> }
-				).runAutoSyncTick;
-				await runTick.call(plugin);
-				await flushMicrotasks();
-				const gatingMessages = logSyncSpy.mock.calls
-					.map(([, message]) => message)
-					.filter((message) =>
-						message.includes("Auto sync skipped uploads")
-					);
-				expect(gatingMessages.length).toBeGreaterThanOrEqual(2);
-				expect(gatingMessages[0]).toContain(
-					"Please enable two-way sync in settings first."
-				);
-				expect(importSpy).toHaveBeenCalledTimes(2);
-				expect(importSpy).toHaveBeenNthCalledWith(1, true);
-				expect(noticeSpy).toHaveBeenCalledTimes(1);
-			} finally {
-				plugin.stopAutoSync();
-				logSyncSpy.mockRestore();
-				noticeSpy.mockRestore();
-				importSpy.mockRestore();
 			}
 		});
 
@@ -898,63 +836,9 @@ describe("KeepSidianPlugin", () => {
 	});
 
 	describe("loadSettings safeguards", () => {
-		it("forces beta toggles off when backups are not acknowledged", async () => {
-			plugin.loadData = jest.fn().mockResolvedValue({
-				...DEFAULT_SETTINGS,
-				twoWaySyncBackupAcknowledged: false,
-				twoWaySyncEnabled: true,
-				twoWaySyncAutoSyncEnabled: true,
-			});
-
-			await plugin.loadSettings();
-
-			expect(plugin.settings.twoWaySyncBackupAcknowledged).toBe(false);
-			expect(plugin.settings.twoWaySyncEnabled).toBe(false);
-			expect(plugin.settings.twoWaySyncAutoSyncEnabled).toBe(false);
-		});
-
-		it("disables auto two-way when manual two-way is off", async () => {
-			plugin.loadData = jest.fn().mockResolvedValue({
-				...DEFAULT_SETTINGS,
-				twoWaySyncBackupAcknowledged: true,
-				twoWaySyncEnabled: false,
-				twoWaySyncAutoSyncEnabled: true,
-			});
-
-			await plugin.loadSettings();
-
-			expect(plugin.settings.twoWaySyncBackupAcknowledged).toBe(true);
-			expect(plugin.settings.twoWaySyncEnabled).toBe(false);
-			expect(plugin.settings.twoWaySyncAutoSyncEnabled).toBe(false);
-		});
 	});
 
-	describe("two-way safeguards", () => {
-		beforeEach(async () => {
-			await plugin.onload();
-		});
-
-		it("returns gating reasons when safeguards are incomplete", async () => {
-			const result = await plugin.requireTwoWaySafeguards();
-			expect(result.allowed).toBe(false);
-			expect(result.reasons).toContain(
-				"Please opt-in to two-way sync in settings first."
-			);
-		});
-
-		it("allows uploads when safeguards and subscription requirements are met", async () => {
-			plugin.settings.twoWaySyncBackupAcknowledged = true;
-			plugin.settings.twoWaySyncEnabled = true;
-			const subscriptionSpy = jest
-				.spyOn(plugin.subscriptionService, "isSubscriptionActive")
-				.mockResolvedValue(true);
-
-			const result = await plugin.requireTwoWaySafeguards();
-			expect(subscriptionSpy).toHaveBeenCalled();
-			expect(result.allowed).toBe(true);
-			subscriptionSpy.mockRestore();
-		});
-
+	describe("commands", () => {
 		it("routes sync commands through the shared sync center", async () => {
 			registerCommands(plugin);
 			const addCommandMock = plugin.addCommand as jest.Mock;
@@ -967,12 +851,6 @@ describe("KeepSidianPlugin", () => {
 			const importCommand = addCommandMock.mock.calls.find(
 				([options]) => options.id === "import-google-keep-notes"
 			)?.[0];
-			const pushCommand = addCommandMock.mock.calls.find(
-				([options]) => options.id === "push-google-keep-notes"
-			)?.[0];
-			const twoWayCommand = addCommandMock.mock.calls.find(
-				([options]) => options.id === "two-way-sync-google-keep"
-			)?.[0];
 			const openSyncCenterSpy = jest
 				.spyOn(plugin, "openSyncCenter")
 				.mockImplementation(() => {});
@@ -980,8 +858,6 @@ describe("KeepSidianPlugin", () => {
 			await syncNowCommand.callback();
 			await openCenterCommand.callback();
 			await importCommand.callback();
-			await pushCommand.callback();
-			await twoWayCommand.callback();
 
 			expect(openSyncCenterSpy).toHaveBeenNthCalledWith(1, {
 				mode: "import",
@@ -990,14 +866,6 @@ describe("KeepSidianPlugin", () => {
 			expect(openSyncCenterSpy).toHaveBeenNthCalledWith(2);
 			expect(openSyncCenterSpy).toHaveBeenNthCalledWith(3, {
 				mode: "import",
-				autoStart: true,
-			});
-			expect(openSyncCenterSpy).toHaveBeenNthCalledWith(4, {
-				mode: "push",
-				autoStart: true,
-			});
-			expect(openSyncCenterSpy).toHaveBeenNthCalledWith(5, {
-				mode: "two-way",
 				autoStart: true,
 			});
 

@@ -1,0 +1,12 @@
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      - keepsidian_node_modules:/workspace/node_modules
+
+volumes:
+  keepsidian_node_modules:
