@@ -127,8 +127,7 @@ describe("processAttachments", () => {
 		expect(result).toEqual({ downloaded: 0, skippedIdentical: 0 });
 	});
 
-	it("should handle network request failure", async () => {
-		// Mock failed request
+	it("should skip failed attachment downloads instead of aborting the whole sync", async () => {
 		(requestUrl as jest.Mock).mockRejectedValueOnce(
 			new Error("Network error")
 		);
@@ -136,19 +135,15 @@ describe("processAttachments", () => {
 		const blobUrls = ["https://example.com/image1.jpg"];
 		const saveLocation = "/test/location";
 
-		await expect(
-			processAttachments(mockPlugin.app, blobUrls, saveLocation)
-		).rejects.toThrow(
-			"Failed to download blob from https://example.com/image1.jpg."
-		);
+		const result = await processAttachments(mockPlugin.app, blobUrls, saveLocation);
 
-		// Verify requestUrl was called but writeBinary wasn't
 		expect(requestUrl).toHaveBeenCalledTimes(1);
 		expect(mockPlugin.app.vault.adapter.writeBinary).not.toHaveBeenCalled();
+		expect(console.error).toHaveBeenCalled();
+		expect(result).toEqual({ downloaded: 0, skippedIdentical: 0 });
 	});
 
-	it("should handle file write failure", async () => {
-		// Mock successful request but failed write
+	it("should skip write failures instead of aborting the whole sync", async () => {
 		const mockArrayBuffer = new ArrayBuffer(8);
 		(requestUrl as jest.Mock).mockResolvedValueOnce({
 			arrayBuffer: mockArrayBuffer,
@@ -161,17 +156,12 @@ describe("processAttachments", () => {
 		const blobUrls = ["https://example.com/image1.jpg"];
 		const saveLocation = "/test/location";
 
-		await expect(
-			processAttachments(mockPlugin.app, blobUrls, saveLocation)
-		).rejects.toThrow(
-			"Failed to download blob from https://example.com/image1.jpg."
-		);
+		const result = await processAttachments(mockPlugin.app, blobUrls, saveLocation);
 
-		// Verify both functions were called
 		expect(requestUrl).toHaveBeenCalledTimes(1);
-		expect(mockPlugin.app.vault.adapter.writeBinary).toHaveBeenCalledTimes(
-			1
-		);
+		expect(mockPlugin.app.vault.adapter.writeBinary).toHaveBeenCalledTimes(1);
+		expect(console.error).toHaveBeenCalled();
+		expect(result).toEqual({ downloaded: 0, skippedIdentical: 0 });
 	});
 
 	it("should handle invalid blob URLs", async () => {

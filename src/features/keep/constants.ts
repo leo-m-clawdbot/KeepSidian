@@ -8,6 +8,7 @@ export const FRONTMATTER_GOOGLE_KEEP_URL_KEY = "GoogleKeepUrl";
 export const FRONTMATTER_GOOGLE_KEEP_COLOR_KEY = "GoogleKeepColor";
 export const FRONTMATTER_GOOGLE_KEEP_PINNED_KEY = "GoogleKeepPinned";
 export const FRONTMATTER_GOOGLE_KEEP_ARCHIVED_KEY = "GoogleKeepArchived";
+export const FRONTMATTER_GOOGLE_KEEP_LABELS_KEY = "GoogleKeepLabels";
 
 // Sync + file handling
 export const CONFLICT_FILE_SUFFIX = "-conflict-";

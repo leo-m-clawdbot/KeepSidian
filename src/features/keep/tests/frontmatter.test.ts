@@ -27,4 +27,14 @@ describe("buildFrontmatterWithSyncDate", () => {
 		expect(result).toContain("GoogleKeepArchived: true");
 		expect(result).toContain("KeepSidianLastSyncedDate: 2024-03-03T12:34:56.000Z");
 	});
+
+	it("preserves GoogleKeepLabels as Keep-managed metadata", () => {
+		const result = buildFrontmatterWithSyncDate(
+			"GoogleKeepLabels: [\"old\"]",
+			"2024-03-03T12:34:56.000Z",
+			"GoogleKeepLabels: [\"tagebuch\", \"ideas\"]"
+		);
+
+		expect(result).toContain('GoogleKeepLabels: ["tagebuch", "ideas"]');
+	});
 });

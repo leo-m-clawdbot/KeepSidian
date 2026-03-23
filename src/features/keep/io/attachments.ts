@@ -149,8 +149,8 @@ export async function processAttachments(
 				result.downloaded += 1;
 			}
 		} catch (error) {
-			console.error(error);
-			throw new Error(`Failed to download blob from ${blob_url}.`);
+			console.error(`Failed to download blob from ${blob_url}.`, error);
+			continue;
 		}
 	}
 

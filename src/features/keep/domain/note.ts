@@ -79,9 +79,31 @@ function normalizeNote(note: PreNormalizedNote): NormalizedNote {
 
 	const [frontmatter, textWithoutFrontmatter, frontmatterDict] =
 		extractFrontmatter(normalizedNote.text);
-	normalizedNote.frontmatter = frontmatter;
+	const keepManagedFrontmatterLines: string[] = [];
+	if (normalizedNote.created) {
+		keepManagedFrontmatterLines.push(`GoogleKeepCreatedDate: ${normalizedNote.created.toISOString()}`);
+	}
+	if (normalizedNote.updated) {
+		keepManagedFrontmatterLines.push(`GoogleKeepUpdatedDate: ${normalizedNote.updated.toISOString()}`);
+	}
+	const keepUrl = getFrontmatterStringValue(frontmatterDict, "GoogleKeepUrl");
+	if (keepUrl) {
+		keepManagedFrontmatterLines.push(`GoogleKeepUrl: ${keepUrl}`);
+	}
+	if (normalizedNote.color) {
+		keepManagedFrontmatterLines.push(`GoogleKeepColor: ${normalizedNote.color}`);
+	}
+	keepManagedFrontmatterLines.push(`GoogleKeepPinned: ${normalizedNote.pinned ? "true" : "false"}`);
+	keepManagedFrontmatterLines.push(`GoogleKeepArchived: ${normalizedNote.archived ? "true" : "false"}`);
+	if (normalizedNote.labels.length > 0) {
+		keepManagedFrontmatterLines.push(`GoogleKeepLabels: [${normalizedNote.labels.map((label) => JSON.stringify(label)).join(", ")}]`);
+	}
+	const mergedFrontmatter = [frontmatter.trim(), ...keepManagedFrontmatterLines]
+		.filter((part) => part && part.trim().length > 0)
+		.join("\n");
+	normalizedNote.frontmatter = mergedFrontmatter;
 	normalizedNote.textWithoutFrontmatter = textWithoutFrontmatter;
-	normalizedNote.frontmatterDict = frontmatterDict;
+	normalizedNote.frontmatterDict = parseFrontmatter(mergedFrontmatter);
 
 	return normalizedNote;
 }
